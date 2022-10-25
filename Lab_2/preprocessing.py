@@ -7,16 +7,20 @@ LABELS = ['down', 'go', 'left', 'no', 'right', 'stop', 'up', 'yes']
 
 
 def get_audio_and_label(filename):
+    # tensorflow can manage opening a file, returning a binary string (object is tensorflow
     audio_binary = tf.io.read_file(filename)
-    audio, sampling_rate = tf.audio.decode_wav(audio_binary) 
+    # transform the tensor into a usable format, decoding the file as it is a wav file
+    audio, sampling_rate = tf.audio.decode_wav(audio_binary)  # for the examples seens during the lab, our audio files have sampling rate = 16 kHz
+    
+    # as Label, i take the label that is saved inside the filename (after examples that is my folder, before "_" )
     path_parts = tf.strings.split(filename, '/')
     path_end = path_parts[-1]
     file_parts = tf.strings.split(path_end, '_')
+    # to decode this label -> label.numpy().decode()
     label = file_parts[0]
     #print(audio)
     return audio, sampling_rate, label
-    #print('Sampling rate:', sampling_rate)
-    # TODO: Write your code here
+    
     
 
 def get_spectrogram(filename, downsampling_rate, frame_length_in_s=0.04, frame_step_in_s=0.02):
