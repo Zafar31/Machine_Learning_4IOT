@@ -11,6 +11,14 @@ import sounddevice as sd
 import numpy as np
 from time import time
 from scipy.io.wavfile import write
+import argparse as ap
+
+
+parser = ap.ArgumentParser()
+
+parser.add_argument('--resolution', type=str, default='int16')
+args = parser.parse_args()
+
 
 def get_audio_from_numpy(indata):
     indata = tf.convert_to_tensor(indata, dtype=tf.float32)
