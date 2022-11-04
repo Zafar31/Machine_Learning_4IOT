@@ -16,7 +16,12 @@ import argparse as ap
 
 parser = ap.ArgumentParser()
 
-parser.add_argument('--resolution', type=str, default='int16')
+parser.add_argument('--resolution', default=16000, type=int, help="Resolution for capturing audio")
+# blocksize
+parser.add_argument('--blocksize', default=48000, type=int, help="Blocksize for capturing audio")
+parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
+
+
 args = parser.parse_args()
 
 
@@ -30,7 +35,7 @@ def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
     # print(type(indata))  # Type is numpy.ndarray
-    write(f'./AudioFiles/{timestamp}.wav', 16000, indata)
+    write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
     filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
     filesize_in_kb = filesize_in_bytes / 1024
     print(f'Size: {filesize_in_kb:.2f}KB')
@@ -93,7 +98,7 @@ number of frames based on host requirements and the requested latency settings. 
 
 """
 
-with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=16000, blocksize=16000, callback=callback):
+with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
     while True:
         key = input()
         if key in ('q', 'Q'):
