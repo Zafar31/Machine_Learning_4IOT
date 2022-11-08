@@ -35,10 +35,11 @@ def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
     # print(type(indata))  # Type is numpy.ndarray
-    write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
-    filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
-    filesize_in_kb = filesize_in_bytes / 1024
-    print(f'Size: {filesize_in_kb:.2f}KB')
+    if is_silence(indata) = '0' :
+        write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
+        filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
+        filesize_in_kb = filesize_in_bytes / 1024
+        print(f'Size: {filesize_in_kb:.2f}KB')
 
 def get_spectrogram(indata, downsampling_rate, frame_length_in_s, frame_step_in_s):
     # TODO: Write your code here
