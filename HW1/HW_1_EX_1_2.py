@@ -12,6 +12,8 @@ import numpy as np
 from time import time
 from scipy.io.wavfile import write
 import argparse as ap
+import tensorflow as tf
+import tensorflow_io as tfio
 
 
 parser = ap.ArgumentParser()
@@ -30,16 +32,6 @@ def get_audio_from_numpy(indata):
     indata = (indata + 32768) / (32767 + 32768)
     indata = tf.squeeze(indata)
     return indata
-
-def callback(indata, frames, callback_time, status):
-    """This is called (from a separate thread) for each audio block."""
-    timestamp = time()
-    # print(type(indata))  # Type is numpy.ndarray
-    if is_silence(indata) = '0' :
-        write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
-        filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
-        filesize_in_kb = filesize_in_bytes / 1024
-        print(f'Size: {filesize_in_kb:.2f}KB')
 
 def get_spectrogram(indata, downsampling_rate, frame_length_in_s, frame_step_in_s):
     # TODO: Write your code here
@@ -88,16 +80,27 @@ for value in values:
         device = value['index']
 
 """
-
 samplerate (float, optional) – 
 The desired sampling frequency (for both input and output). The default value can be changed with default.samplerate.
-
 blocksize (int, optional) – 
 The number of frames passed to the stream callback function, or the preferred block granularity for a blocking read/write stream. 
 The special value blocksize=0 (which is the default) may be used to request that the stream callback will receive an optimal (and possibly varying) 
 number of frames based on host requirements and the requested latency settings. The default value can be changed with default.blocksize.
-
 """
+
+def callback(indata, frames, callback_time, status):
+    """This is called (from a separate thread) for each audio block."""
+    timestamp = time()
+    # print(type(indata))  # Type is numpy.ndarray
+    if is_silence(indata) != '0' :
+        print("Noise!")
+        write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
+        filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
+        filesize_in_kb = filesize_in_bytes / 1024
+        print(f'Size: {filesize_in_kb:.2f}KB')
+
+    if is_silence(indata) == '1':
+        print("Silence!")
 
 with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
     while True:
