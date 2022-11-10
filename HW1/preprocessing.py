@@ -54,5 +54,7 @@ def get_log_mel_spectrogram(filename, downsampling_rate, frame_length_in_s, fram
 
 def get_mfccs(filename, downsampling_rate, frame_length_in_s, frame_step_in_s, num_mel_bins, lower_frequency, upper_frequency, num_coefficients):
     # TODO: Write your code here
+    log_mel_spectrogram, label = get_log_mel_spectrogram(filename, downsampling_rate, frame_length_in_s, frame_step_in_s, num_mel_bins, lower_frequency, upper_frequency)
 
-    pass
+    mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrogram)
+    return mfccs,label
