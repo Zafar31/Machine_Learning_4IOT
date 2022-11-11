@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 def get_audio_from_numpy(indata):
     indata = tf.convert_to_tensor(indata, dtype=tf.float32)
-    indata = (indata + 32768) / (32767 + 32768)
+    indata = 2* ((indata + 32768) / (32767 + 32768)) -1
     indata = tf.squeeze(indata)
     return indata
 
