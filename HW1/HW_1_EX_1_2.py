@@ -21,6 +21,7 @@ parser.add_argument('--resolution', default=16000, type=int, help="Resolution fo
 # blocksize
 parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
+parser.add_argument('--output_directory', default='./AudioFiles',type=str, help='Used to specify output folder')
 
 args = parser.parse_args()
 
@@ -93,7 +94,7 @@ def callback(indata, frames, callback_time, status):
     # print(type(indata))  # Type is numpy.ndarray
     if is_silence(indata) == 0 :
         print("Noise!")
-        write(f'./AudioFiles/{timestamp}.wav', args.resolution, indata)
+        write(f'{args.output_directory}/{timestamp}.wav', args.resolution, indata)
         filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
         filesize_in_kb = filesize_in_bytes / 1024
         print(f'Size: {filesize_in_kb:.2f}KB')
@@ -110,4 +111,8 @@ def main():
                 break
 
 if __name__ == '__main__':
+    output_directory = args.output_directory
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
     main()
