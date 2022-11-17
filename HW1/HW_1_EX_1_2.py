@@ -102,7 +102,7 @@ def callback(indata, frames, callback_time, status):
         print("Silence!")
 
 def main():
-    with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
+    with sd.InputStream(device=args.device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
         while True:
             key = input()
             if key in ('q', 'Q'):
