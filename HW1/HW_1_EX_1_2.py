@@ -5,7 +5,6 @@ Use the scipy.io.wavfile.write function to store the audio data on disk.
 Use the timestamp of the recording as the filename.
 """
 
-
 import os
 import sounddevice as sd
 import numpy as np
@@ -22,7 +21,6 @@ parser.add_argument('--resolution', default=16000, type=int, help="Resolution fo
 # blocksize
 parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
-
 
 args = parser.parse_args()
 
@@ -91,7 +89,7 @@ number of frames based on host requirements and the requested latency settings. 
 def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
-    print(is_silence(indata))
+    # print(is_silence(indata))
     # print(type(indata))  # Type is numpy.ndarray
     if is_silence(indata) == 0 :
         print("Noise!")
@@ -103,9 +101,13 @@ def callback(indata, frames, callback_time, status):
     else:
         print("Silence!")
 
-with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
-    while True:
-        key = input()
-        if key in ('q', 'Q'):
-            print('Stop recording.')
-            break
+def main():
+    with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
+        while True:
+            key = input()
+            if key in ('q', 'Q'):
+                print('Stop recording.')
+                break
+
+if __name__ == '__main__':
+    main()
