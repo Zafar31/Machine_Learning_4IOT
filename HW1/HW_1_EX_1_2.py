@@ -20,7 +20,7 @@ parser = ap.ArgumentParser()
 
 parser.add_argument('--resolution', default=16000, type=int, help="Resolution for capturing audio")
 # blocksize
-parser.add_argument('--blocksize', default=48000, type=int, help="Blocksize for capturing audio")
+parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
 
 
