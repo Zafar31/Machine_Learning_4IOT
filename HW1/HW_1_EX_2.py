@@ -10,18 +10,17 @@ import time
 from time import sleep
 from time import time
 from datetime import datetime
+import myConnection as mc
+
 
 
 mac_address = hex(uuid.getnode())
 
 # Connect to Redis
-redis_host = "******"
-redis_port = **************
-REDIS_USERNAME = 'default'
-REDIS_PASSWORD = 'your-password'
+redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
 
 
-redis_client = redis.Redis(host=redis_host, port=redis_port)
+redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
 is_connected = redis_client.ping()
 print('Redis Connected:', is_connected)
 
