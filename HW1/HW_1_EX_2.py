@@ -37,9 +37,9 @@ except redis.ResponseError:
     print("Cannot flush")
     pass
 try:
-    redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
-    redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
-    redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=4, retention=one_mb_time_in_ms)
+    redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
+    redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
+    redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
 except redis.ResponseError:
     print("Cannot create some TimeSeries")
     pass
