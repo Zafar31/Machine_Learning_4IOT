@@ -13,6 +13,7 @@ from scipy.io.wavfile import write
 import argparse as ap
 import tensorflow as tf
 import tensorflow_io as tfio
+import uuid
 
 
 parser = ap.ArgumentParser()
@@ -44,10 +45,8 @@ def get_audio_from_numpy(indata):
     return indata
 
 def get_spectrogram(indata, downsampling_rate, frame_length_in_s, frame_step_in_s):
-    # TODO: Write your code here
     data = get_audio_from_numpy(indata)
     
-
     sampling_rate_float32 = tf.cast(downsampling_rate, tf.float32)
     frame_length = int(frame_length_in_s * sampling_rate_float32)
     frame_step = int(frame_step_in_s * sampling_rate_float32)
@@ -98,11 +97,15 @@ def calculate_next_state_FSM(indata):
     status = state
     ###
     data = get_audio_from_numpy(indata)
-    # audio_binary = tf.io.read_file(filename)
-    audio, sampling_rate = tf.audio.decode_wav(data)
-    audio = tf.squeeze(audio)
-    zero_padding = tf.zeros(sampling_rate - tf.shape(audio), dtype=tf.float32)
+    # sampling_rate_float32 = tf.cast(16000, tf.float32)
+
+    # # audio_binary = tf.io.read_file(filename)
+    # audio, sampling_rate = tf.audio.decode_wav(data)
+    # audio = tf.squeeze(audio)
+    audio=data
+    zero_padding = tf.zeros(16000 - tf.shape(audio), dtype=tf.float32)
     audio_padded = tf.concat([audio, zero_padding], axis=0)
+    # audio_padded=audio
 
     stft = tf.signal.stft(
         audio_padded,
@@ -123,6 +126,8 @@ def calculate_next_state_FSM(indata):
     # top_index = np.argmax(output[0])
     # predicted_label = LABELS[top_index]
     ###
+    print(output[0][5])
+    print(output[0][1])
     if (output[0][5] > threshold):
         print("Start monitoring")
         status = True
@@ -153,7 +158,7 @@ number of frames based on host requirements and the requested latency settings. 
 def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
-    # print(is_silence(indata))
+    print("Function: ",is_silence(indata))
     # print(type(indata))  # Type is numpy.ndarray
     if is_silence(indata) == 0 :
         print("Noise!")
@@ -185,18 +190,18 @@ def main():
     # second and store the collected data on Redis (follow the specifications of LAB1 – Exercise 2c for the
     # timeseries naming).
     mac_address = hex(uuid.getnode())
-    redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
+    # redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
     
-    bucket_1d_in_ms=86400000
-    one_mb_time_in_ms = 655359000
-    five_mb_time_in_ms = 3276799000
+    # bucket_1d_in_ms=86400000
+    # one_mb_time_in_ms = 655359000
+    # five_mb_time_in_ms = 3276799000
 
-    try:
-        redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
-        redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
-    except redis.ResponseError:
-        print("Cannot create some TimeSeries")
-        pass
+    # try:
+    #     redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
+    #     redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
+    # except redis.ResponseError:
+    #     print("Cannot create some TimeSeries")
+    #     pass
     
     while True:
         print("Start")
@@ -207,7 +212,7 @@ def main():
             print("System is monitoring")
         
         #check if silence
-        with sd.InputStream(device=args.device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
+        with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
             print("Check Silence")
 
     # The VUI must provide the user the possibility to start/stop the battery monitoring using “go/stop”
