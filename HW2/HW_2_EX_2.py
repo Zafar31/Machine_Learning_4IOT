@@ -88,13 +88,13 @@ linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
     lower_edge_hertz=20,
     upper_edge_hertz=4000
 )
+
 state = False
 
 def calculate_next_state_FSM(indata):
-    print("Test")
-    frame_length = 0.04
-    frame_step   = 0.04
-    status = state
+    frame_length_in_s = 0.04
+    frame_step_in_s   = 0.04
+    global state
     ###
     data = get_audio_from_numpy(indata)
     # sampling_rate_float32 = tf.cast(16000, tf.float32)
@@ -105,6 +105,8 @@ def calculate_next_state_FSM(indata):
     audio=data
     zero_padding = tf.zeros(16000 - tf.shape(audio), dtype=tf.float32)
     audio_padded = tf.concat([audio, zero_padding], axis=0)
+    frame_length = int(frame_length_in_s * 16000)
+    frame_step = int(frame_step_in_s * 16000)
     # audio_padded=audio
 
     stft = tf.signal.stft(
@@ -126,15 +128,16 @@ def calculate_next_state_FSM(indata):
     # top_index = np.argmax(output[0])
     # predicted_label = LABELS[top_index]
     ###
-    print(output[0][5])
-    print(output[0][1])
-    if (output[0][5] > threshold):
-        print("Start monitoring")
-        status = True
+    threshold = 0.95
+    print("Stop:",output[0][5])
+    print("Go",output[0][1])
     if (output[0][1] > threshold):
+        print("Start monitoring")
+        state = True
+    if (output[0][5] > threshold):
         print("Stop monitoring")
-        status = False
-
+        state = False
+    print(state)
     return state
 
 
@@ -158,38 +161,37 @@ number of frames based on host requirements and the requested latency settings. 
 def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
-    print("Function: ",is_silence(indata))
     # print(type(indata))  # Type is numpy.ndarray
     if is_silence(indata) == 0 :
-        print("Noise!")
+        # print("Noise!")
 
         #calculate next step of FSM!
         state = calculate_next_state_FSM(indata)
         #
 
-        write(f'{args.output_directory}/{timestamp}.wav', args.resolution, indata)
-        filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
-        filesize_in_kb = filesize_in_bytes / 1024
-        print(f'Size: {filesize_in_kb:.2f}KB')
+        if state == True:
+            print("Start state")
+        else:
+            print("Stop state")
 
-    else:
-        print("Silence!")
+        # write(f'{args.output_directory}/{timestamp}.wav', args.resolution, indata)
+        # filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
+        # filesize_in_kb = filesize_in_bytes / 1024
+        # print(f'Size: {filesize_in_kb:.2f}KB')
+
+    # else:
+    #     print("Silence!")
 
 def main():
-    # with sd.InputStream(device=args.device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
-    #     while True:
-    #         key = input()
-    #         if key in ('q', 'Q'):
-    #             print('Stop recording.')
-    #             break
 
+    mac_address = hex(uuid.getnode())
     # Update the battery monitoring script of LAB1 – Exercise 2 integrating a Voice User Interface (VUI)
     # based on VAD and KWS.
 
     # The monitoring system must measure the battery status (battery level and power plugged) every 1
     # second and store the collected data on Redis (follow the specifications of LAB1 – Exercise 2c for the
     # timeseries naming).
-    mac_address = hex(uuid.getnode())
+    
     # redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
     
     # bucket_1d_in_ms=86400000
@@ -213,7 +215,10 @@ def main():
         
         #check if silence
         with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
-            print("Check Silence")
+            key = input()
+            if key in ('q', 'Q'):
+                print('Stop recording.')
+                break
 
     # The VUI must provide the user the possibility to start/stop the battery monitoring using “go/stop”
     # voice commands.
