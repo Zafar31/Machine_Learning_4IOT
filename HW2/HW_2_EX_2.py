@@ -11,7 +11,7 @@ import tensorflow_io as tfio
 import uuid
 import redis
 import psutil
-import myConnection as mc
+# import myConnection as mc
 
 
 from datetime import datetime
@@ -26,10 +26,10 @@ parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for 
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
 parser.add_argument('--output_directory', default='./AudioFiles',type=str, help='Used to specify output folder')
 #redis args
-parser.add_argument('--host', default='', type=str, help="Default host change for others")
-parser.add_argument('--port', default=0, type=int, help="Default port change for others")
-parser.add_argument('--user', default='', type=str, help="Default user change for others")
-parser.add_argument('--password', default='', type=str, help="Default password change for others")
+parser.add_argument('--host', default='redis-13196.c293.eu-central-1-1.ec2.cloud.redislabs.com', type=str, help="Default host change for others")
+parser.add_argument('--port', default=13196, type=int, help="Default port change for others")
+parser.add_argument('--user', default='default', type=str, help="Default user change for others")
+parser.add_argument('--password', default='NGbg7uGecevRJY9qTEutCrumkPOMwj4J', type=str, help="Default password change for others")
 parser.add_argument('--flushDB', default=0, type=int, help="Set 1 to flush all database. Default is 0")
 
 
@@ -140,8 +140,12 @@ for value in values:
         device = value['index']
 
 # Connect to Redis
-redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
+# redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
 
+redis_host     = args.host
+redis_port     = args.port
+REDIS_USERNAME = args.user
+REDIS_PASSWORD = args.password
 
 redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
 is_connected = redis_client.ping()
