@@ -1,8 +1,8 @@
 
 
 def getMyConnectionDetails():
-    serverIP    = 127.0.0.1
-    port        = 10828
+    serverIP    = "redis-13196.c293.eu-central-1-1.ec2.cloud.redislabs.com"
+    port        = 13196
     username    = "default"
-    password    = "getyourown"
+    password    = "NGbg7uGecevRJY9qTEutCrumkPOMwj4J"
     return serverIP,port,username,password
