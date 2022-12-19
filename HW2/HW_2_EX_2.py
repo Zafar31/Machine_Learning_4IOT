@@ -8,12 +8,22 @@ Use the timestamp of the recording as the filename.
 import os
 import sounddevice as sd
 import numpy as np
+import time
 from time import time
+from time import sleep
 from scipy.io.wavfile import write
 import argparse as ap
 import tensorflow as tf
 import tensorflow_io as tfio
 import uuid
+import redis
+import psutil
+
+
+
+
+from datetime import datetime
+import argparse as ap
 
 
 parser = ap.ArgumentParser()
@@ -23,6 +33,13 @@ parser.add_argument('--resolution', default=16000, type=int, help="Resolution fo
 parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
 parser.add_argument('--output_directory', default='./AudioFiles',type=str, help='Used to specify output folder')
+#redis args
+parser.add_argument('--host', default='', type=str, help="Default host change for others")
+parser.add_argument('--port', default=0, type=int, help="Default port change for others")
+parser.add_argument('--user', default='', type=str, help="Default user change for others")
+parser.add_argument('--password', default='', type=str, help="Default password change for others")
+parser.add_argument('--flushDB', default=0, type=int, help="Set 1 to flush all database. Default is 0")
+
 
 args = parser.parse_args()
 
@@ -185,25 +202,44 @@ def callback(indata, frames, callback_time, status):
 def main():
 
     mac_address = hex(uuid.getnode())
+
     # Update the battery monitoring script of LAB1 – Exercise 2 integrating a Voice User Interface (VUI)
     # based on VAD and KWS.
 
     # The monitoring system must measure the battery status (battery level and power plugged) every 1
     # second and store the collected data on Redis (follow the specifications of LAB1 – Exercise 2c for the
     # timeseries naming).
-    
-    # redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
-    
-    # bucket_1d_in_ms=86400000
-    # one_mb_time_in_ms = 655359000
-    # five_mb_time_in_ms = 3276799000
+      
 
-    # try:
-    #     redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
-    #     redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
-    # except redis.ResponseError:
-    #     print("Cannot create some TimeSeries")
-    #     pass
+    # Connect to Redis
+    redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
+
+
+    redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
+    is_connected = redis_client.ping()
+    print('Redis Connected:', is_connected)
+
+    bucket_1d_in_ms=86400000
+    one_mb_time_in_ms = 655359000
+    five_mb_time_in_ms = 3276799000
+
+    try:
+        redis_client.flushall()
+    except redis.ResponseError:
+        print("Cannot flush")
+        pass
+    try:
+        redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
+        redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
+        redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=4, retention=one_mb_time_in_ms)
+    except redis.ResponseError:
+        print("Cannot create some TimeSeries")
+        pass
+    try:
+        redis_client.ts().createrule('{mac_address}:power','{mac_address}:plugged_seconds','sum',bucket_1d_in_ms)
+    except redis.ResponseError:
+        print("Cannot create rule")
+        pass
     
     while True:
         print("Start")
@@ -212,6 +248,17 @@ def main():
 
         if(state == True):
             print("System is monitoring")
+            timestamp_ms = int(time() * 1000)
+            battery_level = psutil.sensors_battery().percent
+            power_plugged = int(psutil.sensors_battery().power_plugged)
+            redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
+            redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
+
+            formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
+            print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
+            print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
+
+            sleep(1)
         
         #check if silence
         with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
@@ -219,7 +266,7 @@ def main():
             if key in ('q', 'Q'):
                 print('Stop recording.')
                 break
-
+                
     # The VUI must provide the user the possibility to start/stop the battery monitoring using “go/stop”
     # voice commands.
     # Specifically, the script must implement the following behavior:
