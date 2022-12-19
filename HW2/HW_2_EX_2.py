@@ -1,10 +1,3 @@
-"""
-c. Modify the script to store the audio data on disk every second. 
-Use the stream callback function to store data in parallel with recording. 
-Use the scipy.io.wavfile.write function to store the audio data on disk. 
-Use the timestamp of the recording as the filename.
-"""
-
 import os
 import sounddevice as sd
 import numpy as np
@@ -42,17 +35,12 @@ parser.add_argument('--flushDB', default=0, type=int, help="Set 1 to flush all d
 
 args = parser.parse_args()
 
-
-#used for the model
 LABELS = ['down', 'go', 'left', 'no', 'right', 'stop', 'up', 'yes']
 MODEL_NAME = "model13"
 interpreter = tf.lite.Interpreter(model_path=f'./Team13/tflite_models/{MODEL_NAME}.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
-# end of model
-
-
 
 def get_audio_from_numpy(indata):
     indata = tf.convert_to_tensor(indata, dtype=tf.float32)
@@ -78,8 +66,6 @@ def get_spectrogram(indata, downsampling_rate, frame_length_in_s, frame_step_in_
     return spectrogram
 
 def is_silence(indata, downsampling_rate=16000, frame_length_in_s=0.0005, dbFSthresh=-135, duration_time=0.1):
-    #audio, sampling_rate, label = get_audio_and_label(filename)
-
     spectrogram = get_spectrogram(
         indata,
         downsampling_rate,
@@ -111,20 +97,12 @@ def calculate_next_state_FSM(indata):
     frame_length_in_s = 0.04
     frame_step_in_s   = 0.04
     global state
-    ###
     data = get_audio_from_numpy(indata)
-    # sampling_rate_float32 = tf.cast(16000, tf.float32)
-
-    # # audio_binary = tf.io.read_file(filename)
-    # audio, sampling_rate = tf.audio.decode_wav(data)
-    # audio = tf.squeeze(audio)
     audio=data
     zero_padding = tf.zeros(16000 - tf.shape(audio), dtype=tf.float32)
     audio_padded = tf.concat([audio, zero_padding], axis=0)
     frame_length = int(frame_length_in_s * 16000)
     frame_step = int(frame_step_in_s * 16000)
-    # audio_padded=audio
-
     stft = tf.signal.stft(
         audio_padded,
         frame_length=frame_length,
@@ -141,9 +119,6 @@ def calculate_next_state_FSM(indata):
     interpreter.invoke()
     output = interpreter.get_tensor(output_details[0]['index'])
 
-    # top_index = np.argmax(output[0])
-    # predicted_label = LABELS[top_index]
-    ###
     threshold = 0.95
     print("Stop:",output[0][5])
     print("Go",output[0][1])
@@ -153,7 +128,6 @@ def calculate_next_state_FSM(indata):
     if (output[0][5] > threshold):
         print("Stop monitoring")
         state = False
-    # print(state)
     return state
 
 
@@ -165,15 +139,6 @@ for value in values:
     if value['name'] == 'default':
         device = value['index']
 
-"""
-samplerate (float, optional) – 
-The desired sampling frequency (for both input and output). The default value can be changed with default.samplerate.
-blocksize (int, optional) – 
-The number of frames passed to the stream callback function, or the preferred block granularity for a blocking read/write stream. 
-The special value blocksize=0 (which is the default) may be used to request that the stream callback will receive an optimal (and possibly varying) 
-number of frames based on host requirements and the requested latency settings. The default value can be changed with default.blocksize.
-"""
-
 # Connect to Redis
 redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
 
@@ -181,6 +146,8 @@ redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetai
 redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
 is_connected = redis_client.ping()
 print('Redis Connected:', is_connected)
+
+mac_address = hex(uuid.getnode())
 
 bucket_1d_in_ms=86400000
 one_mb_time_in_ms = 655359000
@@ -195,79 +162,37 @@ if args.flushDB:
 try:
     redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
     redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
-    # redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
 except redis.ResponseError:
-    print("Cannot create some TimeSeries")
+    print("Cannot create some TimeSeries, maybe they already exist")
     pass
 
 def callback(indata, frames, callback_time, status):
-    """This is called (from a separate thread) for each audio block."""
     timestamp = time()
-    # print(type(indata))  # Type is numpy.ndarray
+    global state
+    global mac_address
     if is_silence(indata) == 0 :
-        # print("Noise!")
-
         #calculate next step of FSM!
         state = calculate_next_state_FSM(indata)
-        mac_address = hex(uuid.getnode())
-        #
 
-        if(state == False):
-                print("System is not monitoring")
+    if(state == False):
+        print("System is not monitoring")
 
-        if(state == True):
-            print("System is monitoring")
-            timestamp_ms = int(time() * 1000)
-            battery_level = psutil.sensors_battery().percent
-            power_plugged = int(psutil.sensors_battery().power_plugged)
-            redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
-            redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
-            formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
-            print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
-            print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
+    if(state == True):
+        print("System is monitoring")
+        timestamp_ms = int(time() * 1000)
+        battery_level = psutil.sensors_battery().percent
+        power_plugged = int(psutil.sensors_battery().power_plugged)
+        redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
+        redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
+        formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
+        print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
+        print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
 
 def main():
 
-    
-
-    # Update the battery monitoring script of LAB1 – Exercise 2 integrating a Voice User Interface (VUI)
-    # based on VAD and KWS.
-
-    # The monitoring system must measure the battery status (battery level and power plugged) every 1
-    # second and store the collected data on Redis (follow the specifications of LAB1 – Exercise 2c for the
-    # timeseries naming).
-    
     while True:
-        
-        #check if silence
         with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
-            print("")
-                
-    # The VUI must provide the user the possibility to start/stop the battery monitoring using “go/stop”
-    # voice commands.
-    # Specifically, the script must implement the following behavior:
-
-    # • Initially, the monitoring is disabled.
-
-    # • The VUI always runs in background and continuously records audio data with your PC and
-    # the integrated/USB microphone. Every 1 second, the VUI checks if the recording contains
-    # speech using the VAD function developed in LAB2 – Exercise 2 (or its optimized version
-    # developed in Homework 1).
-
-    # • If the VAD returns no silence, the recording is fed to the classification model for “go/stop”
-    # spotting developed in 1.1 and one of the following actions is performed:
-    # o If the predicted keyword is “go” with probability > 95%, start the monitoring.
-    # o If the predicted keyword is “stop” with probability > 95%, stop the monitoring.
-    # o If the top-1 probability (regardless of the predicted label) is ≤ 95%, remain in the
-    # current state.
-    # • If the VAD returns silence, remain in the current state.
-    # The script should be run from the command line interface and should take as input the following
-    # arguments:
-    # • --device (int): the ID of the microphone used for recording.
-    # • --host (str): the Redis Cloud host.
-    # • --port (int): the Redis Cloud port.
-    # • --user (str): the Redis Cloud username.
-    # • --password (str): the Redis Cloud
+            print("") # to print a new line, improving readability in the terminal
 
 if __name__ == '__main__':
     output_directory = args.output_directory
