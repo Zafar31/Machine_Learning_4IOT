@@ -18,7 +18,7 @@ import tensorflow_io as tfio
 import uuid
 import redis
 import psutil
-# import myConnection as mc
+import myConnection as mc
 
 
 from datetime import datetime
@@ -174,6 +174,32 @@ The special value blocksize=0 (which is the default) may be used to request that
 number of frames based on host requirements and the requested latency settings. The default value can be changed with default.blocksize.
 """
 
+# Connect to Redis
+redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
+
+
+redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
+is_connected = redis_client.ping()
+print('Redis Connected:', is_connected)
+
+bucket_1d_in_ms=86400000
+one_mb_time_in_ms = 655359000
+five_mb_time_in_ms = 3276799000
+
+if args.flushDB:
+    try:
+        redis_client.flushall()
+    except redis.ResponseError:
+        print("Cannot flush")
+        pass
+try:
+    redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
+    redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
+    # redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
+except redis.ResponseError:
+    print("Cannot create some TimeSeries")
+    pass
+
 def callback(indata, frames, callback_time, status):
     """This is called (from a separate thread) for each audio block."""
     timestamp = time()
@@ -194,19 +220,11 @@ def callback(indata, frames, callback_time, status):
             timestamp_ms = int(time() * 1000)
             battery_level = psutil.sensors_battery().percent
             power_plugged = int(psutil.sensors_battery().power_plugged)
-            # redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
-            # redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
+            redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
+            redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
             formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
             print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
             print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
-
-        # write(f'{args.output_directory}/{timestamp}.wav', args.resolution, indata)
-        # filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
-        # filesize_in_kb = filesize_in_bytes / 1024
-        # print(f'Size: {filesize_in_kb:.2f}KB')
-
-    # else:
-    #     print("Silence!")
 
 def main():
 
@@ -218,33 +236,6 @@ def main():
     # The monitoring system must measure the battery status (battery level and power plugged) every 1
     # second and store the collected data on Redis (follow the specifications of LAB1 – Exercise 2c for the
     # timeseries naming).
-      
-
-    # Connect to Redis
-    # redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
-
-
-    # redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
-    # is_connected = redis_client.ping()
-    # print('Redis Connected:', is_connected)
-
-    # bucket_1d_in_ms=86400000
-    # one_mb_time_in_ms = 655359000
-    # five_mb_time_in_ms = 3276799000
-
-    # if args.flushDB:
-    #     try:
-    #         redis_client.flushall()
-    #     except redis.ResponseError:
-    #         print("Cannot flush")
-    #         pass
-    # try:
-    #     redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
-    #     redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
-    #     redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
-    # except redis.ResponseError:
-    #     print("Cannot create some TimeSeries")
-    #     pass
     
     while True:
         
