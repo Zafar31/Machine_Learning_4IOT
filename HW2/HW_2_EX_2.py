@@ -18,9 +18,7 @@ import tensorflow_io as tfio
 import uuid
 import redis
 import psutil
-import myConnection as mc
-
-
+# import myConnection as mc
 
 
 from datetime import datetime
@@ -48,7 +46,7 @@ args = parser.parse_args()
 #used for the model
 LABELS = ['down', 'go', 'left', 'no', 'right', 'stop', 'up', 'yes']
 MODEL_NAME = "model13"
-interpreter = tf.lite.Interpreter(model_path=f'./HW2/Team13/tflite_models/{MODEL_NAME}.tflite')
+interpreter = tf.lite.Interpreter(model_path=f'./Team13/tflite_models/{MODEL_NAME}.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -155,7 +153,7 @@ def calculate_next_state_FSM(indata):
     if (output[0][5] > threshold):
         print("Stop monitoring")
         state = False
-    print(state)
+    # print(state)
     return state
 
 
@@ -185,12 +183,22 @@ def callback(indata, frames, callback_time, status):
 
         #calculate next step of FSM!
         state = calculate_next_state_FSM(indata)
+        mac_address = hex(uuid.getnode())
         #
 
-        if state == True:
-            print("Start state")
-        else:
-            print("Stop state")
+        if(state == False):
+                print("System is not monitoring")
+
+        if(state == True):
+            print("System is monitoring")
+            timestamp_ms = int(time() * 1000)
+            battery_level = psutil.sensors_battery().percent
+            power_plugged = int(psutil.sensors_battery().power_plugged)
+            # redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
+            # redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
+            formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
+            print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
+            print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
 
         # write(f'{args.output_directory}/{timestamp}.wav', args.resolution, indata)
         # filesize_in_bytes = os.path.getsize(f'./AudioFiles/{timestamp}.wav')
@@ -202,7 +210,7 @@ def callback(indata, frames, callback_time, status):
 
 def main():
 
-    mac_address = hex(uuid.getnode())
+    
 
     # Update the battery monitoring script of LAB1 – Exercise 2 integrating a Voice User Interface (VUI)
     # based on VAD and KWS.
@@ -213,61 +221,36 @@ def main():
       
 
     # Connect to Redis
-    redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
+    # redis_host, redis_port, REDIS_USERNAME, REDIS_PASSWORD = mc.getMyConnectionDetails()
 
 
-    redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
-    is_connected = redis_client.ping()
-    print('Redis Connected:', is_connected)
+    # redis_client = redis.Redis(host=redis_host, port=redis_port, username=REDIS_USERNAME, password=REDIS_PASSWORD)
+    # is_connected = redis_client.ping()
+    # print('Redis Connected:', is_connected)
 
-    bucket_1d_in_ms=86400000
-    one_mb_time_in_ms = 655359000
-    five_mb_time_in_ms = 3276799000
+    # bucket_1d_in_ms=86400000
+    # one_mb_time_in_ms = 655359000
+    # five_mb_time_in_ms = 3276799000
 
-    if args.flushDB:
-        try:
-            redis_client.flushall()
-        except redis.ResponseError:
-            print("Cannot flush")
-            pass
-    try:
-        redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
-        redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
-        redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
-    except redis.ResponseError:
-        print("Cannot create some TimeSeries")
-        pass
-    try:
-        redis_client.ts().createrule('{mac_address}:power','{mac_address}:plugged_seconds','sum',bucket_1d_in_ms)
-    except redis.ResponseError:
-        print("Cannot create rule")
-        pass
+    # if args.flushDB:
+    #     try:
+    #         redis_client.flushall()
+    #     except redis.ResponseError:
+    #         print("Cannot flush")
+    #         pass
+    # try:
+    #     redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
+    #     redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
+    #     redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
+    # except redis.ResponseError:
+    #     print("Cannot create some TimeSeries")
+    #     pass
     
     while True:
-        print("Start")
-        if(state == False):
-            print("System is not monitoring")
-
-        if(state == True):
-            print("System is monitoring")
-            timestamp_ms = int(time() * 1000)
-            battery_level = psutil.sensors_battery().percent
-            power_plugged = int(psutil.sensors_battery().power_plugged)
-            redis_client.ts().add('{mac_address}:battery', timestamp_ms, battery_level)
-            redis_client.ts().add('{mac_address}:power', timestamp_ms, power_plugged)
-
-            formatted_datetime = datetime.fromtimestamp(time() ).strftime('%Y-%m-%d %H:%M:%S.%f')
-            print(f'{formatted_datetime} - {mac_address}:battery = {battery_level}')
-            print(f'{formatted_datetime} - {mac_address}:power = {power_plugged}')
-
-            sleep(1)
         
         #check if silence
         with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
-            key = input()
-            if key in ('q', 'Q'):
-                print('Stop recording.')
-                break
+            print("")
                 
     # The VUI must provide the user the possibility to start/stop the battery monitoring using “go/stop”
     # voice commands.
