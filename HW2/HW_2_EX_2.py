@@ -48,7 +48,7 @@ args = parser.parse_args()
 #used for the model
 LABELS = ['down', 'go', 'left', 'no', 'right', 'stop', 'up', 'yes']
 MODEL_NAME = "model13"
-interpreter = tf.lite.Interpreter(model_path=f'./tflite_models/{MODEL_NAME}.tflite')
+interpreter = tf.lite.Interpreter(model_path=f'./HW2/Team13/tflite_models/{MODEL_NAME}.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -224,15 +224,16 @@ def main():
     one_mb_time_in_ms = 655359000
     five_mb_time_in_ms = 3276799000
 
+    if args.flushDB:
+        try:
+            redis_client.flushall()
+        except redis.ResponseError:
+            print("Cannot flush")
+            pass
     try:
-        redis_client.flushall()
-    except redis.ResponseError:
-        print("Cannot flush")
-        pass
-    try:
-        redis_client.ts().create('{mac_address}:battery', chunk_size=4, retention=five_mb_time_in_ms)
-        redis_client.ts().create('{mac_address}:power', chunk_size=4, retention=five_mb_time_in_ms)
-        redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=4, retention=one_mb_time_in_ms)
+        redis_client.ts().create('{mac_address}:battery', chunk_size=128, retention=five_mb_time_in_ms)
+        redis_client.ts().create('{mac_address}:power', chunk_size=128, retention=five_mb_time_in_ms)
+        redis_client.ts().create('{mac_address}:plugged_seconds', chunk_size=128, retention=one_mb_time_in_ms)
     except redis.ResponseError:
         print("Cannot create some TimeSeries")
         pass
