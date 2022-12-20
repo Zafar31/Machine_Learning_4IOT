@@ -24,14 +24,12 @@ parser.add_argument('--resolution', default=16000, type=int, help="Resolution fo
 # blocksize
 parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
-parser.add_argument('--output_directory', default='./AudioFiles',type=str, help='Used to specify output folder')
 #redis args
 parser.add_argument('--host', default='redis-13196.c293.eu-central-1-1.ec2.cloud.redislabs.com', type=str, help="Default host change for others")
 parser.add_argument('--port', default=13196, type=int, help="Default port change for others")
 parser.add_argument('--user', default='default', type=str, help="Default user change for others")
 parser.add_argument('--password', default='NGbg7uGecevRJY9qTEutCrumkPOMwj4J', type=str, help="Default password change for others")
 parser.add_argument('--flushDB', default=0, type=int, help="Set 1 to flush all database. Default is 0")
-
 
 args = parser.parse_args()
 
@@ -195,12 +193,8 @@ def callback(indata, frames, callback_time, status):
 def main():
 
     while True:
-        with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
+        with sd.InputStream(device=args.device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
             print("") # to print a new line, improving readability in the terminal
 
 if __name__ == '__main__':
-    output_directory = args.output_directory
-
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
     main()
