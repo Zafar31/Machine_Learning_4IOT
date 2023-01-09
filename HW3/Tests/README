@@ -1,0 +1,5 @@
+The publisher and the Subscriber share the same topic through "MyTopicDetails.py".
+
+1) Run "waitForMessages.py, that has an infinite loop to wait for messages and print them
+2) Run "sendMessages.py" to just run one message
+3) Read the sent message on the terminal of "waitForMessages.py"
