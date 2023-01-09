@@ -24,7 +24,6 @@ parser.add_argument('--resolution', default=16000, type=int, help="Resolution fo
 # blocksize
 parser.add_argument('--blocksize', default=16000, type=int, help="Blocksize for capturing audio")
 parser.add_argument('--device', default=0, type=int, help="Default device is 0, change for others")
-parser.add_argument('--output_directory', default='./AudioFiles',type=str, help='Used to specify output folder')
 #redis args
 parser.add_argument('--host', default='redis-13196.c293.eu-central-1-1.ec2.cloud.redislabs.com', type=str, help="Default host change for others")
 parser.add_argument('--port', default=13196, type=int, help="Default port change for others")
@@ -32,12 +31,11 @@ parser.add_argument('--user', default='default', type=str, help="Default user ch
 parser.add_argument('--password', default='NGbg7uGecevRJY9qTEutCrumkPOMwj4J', type=str, help="Default password change for others")
 parser.add_argument('--flushDB', default=0, type=int, help="Set 1 to flush all database. Default is 0")
 
-
 args = parser.parse_args()
 
 LABELS = ['down', 'go', 'left', 'no', 'right', 'stop', 'up', 'yes']
 MODEL_NAME = "model13"
-interpreter = tf.lite.Interpreter(model_path=f'./Team13/tflite_models/{MODEL_NAME}.tflite')
+interpreter = tf.lite.Interpreter(model_path=f'./{MODEL_NAME}.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -84,18 +82,18 @@ def is_silence(indata, downsampling_rate=16000, frame_length_in_s=0.0005, dbFSth
         return 1
 
 linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-    num_mel_bins=25,
-    num_spectrogram_bins=321,
+    num_mel_bins=31,
+    num_spectrogram_bins=257,
     sample_rate=16000,
-    lower_edge_hertz=20,
-    upper_edge_hertz=4000
+    lower_edge_hertz=80,
+    upper_edge_hertz=8000
 )
 
 state = False
 
 def calculate_next_state_FSM(indata):
-    frame_length_in_s = 0.04
-    frame_step_in_s   = 0.04
+    frame_length_in_s = 0.032
+    frame_step_in_s   = 0.032
     global state
     data = get_audio_from_numpy(indata)
     audio=data
@@ -120,8 +118,8 @@ def calculate_next_state_FSM(indata):
     output = interpreter.get_tensor(output_details[0]['index'])
 
     threshold = 0.95
-    print("Stop:",output[0][5])
-    print("Go",output[0][1])
+    print("Stop:",output[0][5]*100,"%")
+    print("Go",output[0][1]*100,"%")
     if (output[0][1] > threshold):
         print("Start monitoring")
         state = True
@@ -195,12 +193,8 @@ def callback(indata, frames, callback_time, status):
 def main():
 
     while True:
-        with sd.InputStream(device=device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
+        with sd.InputStream(device=args.device, channels=1, dtype='int16', samplerate=args.resolution, blocksize=args.blocksize, callback=callback):
             print("") # to print a new line, improving readability in the terminal
 
 if __name__ == '__main__':
-    output_directory = args.output_directory
-
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
     main()
