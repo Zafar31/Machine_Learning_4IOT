@@ -39,25 +39,27 @@ def publish(client):
         battery_level = int(psutil.sensors_battery().percent)
         power_plugged = int(psutil.sensors_battery().power_plugged)
 
-        obj = {
-        "mac_address": mac_address,
+        my_dict = {
+        "mac_address":mac_address,
         "timestamp":timestamp,
         "battery_level":battery_level,
         "power_plugged": power_plugged
         }
-        string = json.dumps(obj)
+        my_string = json.dumps(my_dict)
+        #print('The type of "my_string" is:', type(my_string))
        
-   
         time.sleep(1)
-        msg = f"messages: {msg_count}"
+        
+        msg = f"messages: {msg_count}\nBattery:{my_string}\n"
         result = client.publish(topic, msg)
         status = result[0]
         if status == 0:
-             print(f"Send `{msg}` to topic `{topic}`")
-             print(f"Buttery Information: {obj}\n")
+             print(f"{msg}")
+             #print(f"Buttery Information: {obj}\n")
         else:
              print(f"Failed to send message to topic {topic}")
         msg_count += 1
+      
 
 def run():
     client = connect_mqtt()
