@@ -54,25 +54,31 @@ def on_message(client, userdata, msg):
     battery_level   =       myJSON["battery_level"]
     power_plugged   =       myJSON["power_plugged"]
 
-    # print(myJSON["mac_address"])
+    print(myJSON["mac_address"])
     print(myJSON["timestamp"])
     # print(myJSON["battery_level"])
     # print(myJSON["power_plugged"])
+    timeseries_name = mac_address+':battery'
+    print(timeseries_name)
     """
     send to redis
     """
     if flag == 0:
         try:
-            redis_client.ts().create('{mac_address}:battery', chunk_size=128)
-            redis_client.ts().create('{mac_address}:power', chunk_size=128)
+            redis_client.ts().create(timeseries_name, chunk_size=128, duplicate_policy='LAST')
+            redis_client.ts().create(timeseries_name, chunk_size=128, duplicate_policy='LAST')
             flag = 1
         
         except redis.ResponseError:
             print("Probably you already have these timeseries")
             flag = 1
             pass
-    redis_client.ts().add('{mac_address}:battery', timestamp, battery_level)
-    redis_client.ts().add('{mac_address}:power', timestamp, power_plugged)
+    try:
+        redis_client.ts().add('{mac_address}:battery', timestamp, battery_level)
+        redis_client.ts().add('{mac_address}:power', timestamp, power_plugged)
+    except redis.exceptions.ResponseError as e:
+        print(e)
+        pass
 
 # print("1")
 client = mqtt.Client()
