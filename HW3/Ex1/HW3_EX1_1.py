@@ -35,9 +35,9 @@ def connect_mqtt():
 def publish(client):
      msg_count = 0
      while True:
-        timestamp =int(time.time())
-        battery_level = int(psutil.sensors_battery().percent)
-        power_plugged = int(psutil.sensors_battery().power_plugged)
+        timestamp =str(int(time.time())*1000)
+        battery_level = str(int(psutil.sensors_battery().percent))
+        power_plugged = str(int(psutil.sensors_battery().power_plugged))
 
         my_dict = {
         "mac_address":mac_address,
@@ -46,12 +46,13 @@ def publish(client):
         "power_plugged": power_plugged
         }
         my_string = json.dumps(my_dict)
+        msg = my_string
         #print('The type of "my_string" is:', type(my_string))
        
         time.sleep(1)
         
-        msg = f"messages: {msg_count}\nBattery:{my_string}\n"
-        result = client.publish(topic, msg)
+        # msg = f"messages: {msg_count}\nBattery:{my_string}\n"
+        result = client.publish(topic, my_string)
         status = result[0]
         if status == 0:
              print(f"{msg}")
