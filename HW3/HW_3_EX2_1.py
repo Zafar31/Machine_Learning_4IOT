@@ -23,7 +23,7 @@ redis_client = redis.Redis(
     password=REDIS_PASSWORD)
 is_connected = redis_client.ping()
 print('Redis Connected:', is_connected)
-redis_client.flushdb()
+#redis_client.flushdb()
 keys = redis_client.keys('*')
 print(keys)
 
@@ -47,10 +47,16 @@ class Status(object):
             mac_addr = str(key).split(":")[0]
             mac_addr=mac_addr[2:]
             mac_addresses.add(mac_addr)
-        response = "{mac_addresses:"
-        response += str(list(mac_addresses))
-        response += "}"
-    
+        #response = "{\"mac_addresses\":"
+        #response += str(list(mac_addresses))
+        # response += str(list(mac_addresses))
+        #response += "}"
+        #response=response.replace("\'", "\"")
+        dic_mac={}
+        dic_mac["mac_addresses"]=list(mac_addresses)
+        response=json.dumps(dic_mac)
+        # resp = "{mac_addresses: {} }".format(mac_addresses)
+        #resp = "{" + resp + "}"
         return response
 
 
@@ -121,20 +127,21 @@ class TodoDetail(object):
             big_df = big_df.astype({'Power':'int'})
             
             result = json.dumps(result_dict)
+            return result
             
-            response = "{\nmac_address:"
-            response += str(mac_address_to_monitor)
-            response += ",\n"
-            response += "timestamps:"
-            response += str(list(big_df['Datetime']))
-            response += ",\n"
-            response += "battery_levels:"
-            response += str(list(big_df["Battery"]))
-            response += ",\n"
-            response += "power_plugged:"
-            response += str(list(big_df["Power"]))
-            response += ",\n"
-            response += "}"
+            # response = "{\n\"mac_address\": \""
+            # response += str(mac_address_to_monitor)
+            # response += "\",\n"
+            # response += "\"timestamps\":\""
+            # response += str(list(big_df['Datetime']))
+            # response += "\",\n"
+            # response += "\"battery_levels\":\""
+            # response += str(list(big_df["Battery"]))
+            # response += "\",\n"
+            # response += "\"power_plugged\":\""
+            # response += str(list(big_df["Power"]))
+            # response += "\"\n"
+            # response += "}"
             
             return response
             #return big_df.to_html()
@@ -198,7 +205,7 @@ if __name__ == '__main__':
     cherrypy.tree.mount(TodoDetail(), '/device', conf)
     #cherrypy.tree.mount(TodoDetail(), '/device', conf)
     cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-    cherrypy.config.update({'server.socket_port': 8080})
+    cherrypy.config.update({'server.socket_port': 8081})
     cherrypy.engine.start() 
     #cherrypy.quickstart()
     cherrypy.engine.block()
