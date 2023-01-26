@@ -77,12 +77,12 @@ for mac_address in mac_addresses:
 
 
 # C
-# mac_Address_to_be_deleted = mac_addresses.pop()
-# print("Deleting : "+mac_Address_to_be_deleted)
-# #return mac_address_to_monitor
-# try:
-#     found = redis_client.delete(mac_address_to_monitor+':battery')
-#     found = redis_client.delete(mac_address_to_monitor+':power')
-# except redis.ResponseError:
-#     print("No keys are left for you! :)")
-#     pass
+mac_Address_to_be_deleted = mac_addresses.pop()
+print("Deleting : "+mac_Address_to_be_deleted)
+#return mac_address_to_monitor
+try:
+    found = redis_client.delete(mac_address_to_monitor+':battery')
+    found = redis_client.delete(mac_address_to_monitor+':power')
+except redis.ResponseError:
+    print("No keys are left for you! :)")
+    pass
