@@ -7,20 +7,23 @@ from redis.commands.json.path import Path
 import pandas as pd
 import time
 from datetime import datetime
+import argparse as ap
 
+parser = ap.ArgumentParser()
 
 REDIS_HOST = 'redis-18326.c55.eu-central-1-1.ec2.cloud.redislabs.com'
 REDIS_PORT = 18326
 REDIS_USERNAME = 'default'
 REDIS_PASSWORD = '4BjSUT7diE4N72W5WPpJcP7hAH41IPc4'
 
+parser.add_argument('--host', default=REDIS_HOST, type=str, help="Default host change for others")
+parser.add_argument('--port', default=REDIS_PORT, type=int, help="Default port change for others")
+parser.add_argument('--user', default=REDIS_USERNAME, type=str, help="Default user change for others")
+parser.add_argument('--password', default=REDIS_PASSWORD, type=str, help="Default password change for others")
+
 # Connect to Redis server
 
-redis_client = redis.Redis(
-    host=REDIS_HOST, 
-    port=REDIS_PORT, 
-    username=REDIS_USERNAME, 
-    password=REDIS_PASSWORD)
+redis_client = redis.Redis(host=args.host, port=args.port, username=args.user, password=args.password)
 is_connected = redis_client.ping()
 print('Redis Connected:', is_connected)
 #redis_client.flushdb()
